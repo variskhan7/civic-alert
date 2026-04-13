@@ -1,0 +1,2200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CivicAlert — Problem Reporting System</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box
+    }
+
+    :root {
+      --navy: #0D1B2A;
+      --navy2: #162033;
+      --navy3: #1E2E45;
+      --orange: #F4631E;
+      --orange2: #e05518;
+      --teal: #00BFA5;
+      --light: #F5F7FA;
+      --white: #fff;
+      --text: #0D1B2A;
+      --muted: #5A6A7E;
+      --border: #E0E6EF;
+      --pending: #F59E0B;
+      --inprogress: #3B82F6;
+      --resolved: #10B981;
+      --danger: #EF4444;
+      --success: #10B981;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(13, 27, 42, 0.1);
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--light);
+      color: var(--text);
+      min-height: 100vh
+    }
+
+    .page {
+      display: none;
+      min-height: 100vh
+    }
+
+    .page.active {
+      display: block
+    }
+
+    /* NAV */
+    nav {
+      background: var(--navy);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 1000
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none
+    }
+
+    .nav-logo {
+      width: 36px;
+      height: 36px;
+      background: var(--orange);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .nav-logo svg {
+      width: 20px;
+      height: 20px;
+      fill: white
+    }
+
+    .nav-title {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: white;
+      letter-spacing: -0.5px
+    }
+
+    .nav-title span {
+      color: var(--orange)
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+      align-items: center
+    }
+
+    .nav-btn {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      padding: 8px 14px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: white
+    }
+
+    .nav-btn.active-link {
+      color: white;
+      background: rgba(255, 255, 255, 0.1)
+    }
+
+    .nav-btn.primary {
+      background: var(--orange);
+      color: white;
+      font-weight: 500
+    }
+
+    .nav-btn.primary:hover {
+      background: var(--orange2)
+    }
+
+    .nav-user {
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .nav-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--orange);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      color: white;
+      cursor: pointer
+    }
+
+    .nav-username {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.88rem
+    }
+
+    .badge-admin {
+      background: #7C3AED;
+      color: white;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-left: 4px
+    }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--navy3) 100%);
+      padding: 80px 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 60% 40%, rgba(244, 99, 30, 0.08) 0%, transparent 60%);
+      pointer-events: none
+    }
+
+    .hero-tag {
+      display: inline-block;
+      background: rgba(244, 99, 30, 0.15);
+      color: var(--orange);
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(244, 99, 30, 0.3)
+    }
+
+    .hero h1 {
+      font-family: var(--font-head);
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      color: white;
+      line-height: 1.1;
+      margin-bottom: 16px;
+      letter-spacing: -1.5px
+    }
+
+    .hero h1 span {
+      color: var(--orange)
+    }
+
+    .hero p {
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 1.1rem;
+      max-width: 560px;
+      margin: 0 auto 36px;
+      line-height: 1.7
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 26px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      text-decoration: none
+    }
+
+    .btn-primary {
+      background: var(--orange);
+      color: white
+    }
+
+    .btn-primary:hover {
+      background: var(--orange2);
+      transform: translateY(-1px)
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: white;
+      border: 1.5px solid rgba(255, 255, 255, 0.3)
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.5)
+    }
+
+    .btn-sm {
+      padding: 8px 16px;
+      font-size: 0.85rem
+    }
+
+    .btn-navy {
+      background: var(--navy);
+      color: white
+    }
+
+    .btn-navy:hover {
+      background: var(--navy2)
+    }
+
+    .btn-teal {
+      background: var(--teal);
+      color: white
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: white
+    }
+
+    /* STATS BAR */
+    .stats-bar {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 20px 2rem;
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap
+    }
+
+    .stat-item {
+      text-align: center
+    }
+
+    .stat-num {
+      font-family: var(--font-head);
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--navy)
+    }
+
+    .stat-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px
+    }
+
+    /* FEATURES */
+    .features {
+      padding: 72px 2rem;
+      max-width: 1100px;
+      margin: 0 auto
+    }
+
+    .section-title {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 8px
+    }
+
+    .section-sub {
+      color: var(--muted);
+      margin-bottom: 40px;
+      font-size: 1rem
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px
+    }
+
+    .feature-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 28px;
+      border: 1.5px solid var(--border);
+      transition: all 0.2s
+    }
+
+    .feature-card:hover {
+      border-color: var(--orange);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow)
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 22px
+    }
+
+    .fi-orange {
+      background: rgba(244, 99, 30, 0.1)
+    }
+
+    .fi-blue {
+      background: rgba(59, 130, 246, 0.1)
+    }
+
+    .fi-teal {
+      background: rgba(0, 191, 165, 0.1)
+    }
+
+    .feature-card h3 {
+      font-family: var(--font-head);
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 8px
+    }
+
+    .feature-card p {
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.6
+    }
+
+    /* RECENT ISSUES */
+    .recent-section {
+      background: white;
+      padding: 64px 2rem;
+      border-top: 1px solid var(--border)
+    }
+
+    .recent-section .inner {
+      max-width: 1100px;
+      margin: 0 auto
+    }
+
+    /* FORMS */
+    .form-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 1rem
+    }
+
+    .form-card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border)
+    }
+
+    .form-card h2 {
+      font-family: var(--font-head);
+      font-size: 1.7rem;
+      font-weight: 800;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px
+    }
+
+    .form-card p {
+      color: var(--muted);
+      margin-bottom: 28px;
+      font-size: 0.92rem
+    }
+
+    .tab-row {
+      display: flex;
+      gap: 4px;
+      background: var(--light);
+      border-radius: 8px;
+      padding: 4px;
+      margin-bottom: 24px
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 9px;
+      border: none;
+      background: none;
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      cursor: pointer;
+      color: var(--muted);
+      transition: all 0.2s
+    }
+
+    .tab-btn.active {
+      background: white;
+      color: var(--navy);
+      font-weight: 600;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1)
+    }
+
+    .form-group {
+      margin-bottom: 18px
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 6px
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      transition: border 0.2s;
+      outline: none;
+      background: white;
+      color: var(--text)
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      border-color: var(--orange)
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 90px
+    }
+
+    .form-hint {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 4px
+    }
+
+    .form-divider {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin: 16px 0;
+      position: relative
+    }
+
+    .form-divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: var(--border)
+    }
+
+    .form-divider span {
+      background: white;
+      padding: 0 10px;
+      position: relative
+    }
+
+    .alert {
+      padding: 12px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      margin-bottom: 16px
+    }
+
+    .alert-error {
+      background: #FEF2F2;
+      color: #991B1B;
+      border: 1px solid #FECACA
+    }
+
+    .alert-success {
+      background: #F0FDF4;
+      color: #166534;
+      border: 1px solid #BBF7D0
+    }
+
+    .alert-info {
+      background: #EFF6FF;
+      color: #1D4ED8;
+      border: 1px solid #BFDBFE
+    }
+
+    input[type="file"] {
+      padding: 8px;
+      font-size: 0.85rem
+    }
+
+    /* GPS BUTTON */
+    .gps-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start
+    }
+
+    .gps-row input {
+      flex: 1
+    }
+
+    .gps-btn {
+      padding: 11px 14px;
+      background: var(--navy);
+      color: white;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 18px;
+      white-space: nowrap;
+      transition: all 0.2s
+    }
+
+    .gps-btn:hover {
+      background: var(--navy2)
+    }
+
+    .gps-status {
+      font-size: 0.75rem;
+      margin-top: 4px
+    }
+
+    .gps-ok {
+      color: var(--success)
+    }
+
+    .gps-fail {
+      color: var(--danger)
+    }
+
+    /* FULL FORM PAGE */
+    .report-page {
+      padding: 40px 1rem;
+      max-width: 700px;
+      margin: 0 auto
+    }
+
+    .report-page h2 {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 6px
+    }
+
+    .report-page .sub {
+      color: var(--muted);
+      margin-bottom: 32px
+    }
+
+    .report-form {
+      background: white;
+      border-radius: var(--radius);
+      padding: 36px;
+      border: 1px solid var(--border)
+    }
+
+    .map-preview {
+      height: 220px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border);
+      overflow: hidden;
+      margin-top: 10px
+    }
+
+    .img-preview {
+      max-width: 100%;
+      max-height: 160px;
+      border-radius: var(--radius-sm);
+      margin-top: 8px;
+      object-fit: cover
+    }
+
+    .img-drop {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.88rem
+    }
+
+    .img-drop:hover {
+      border-color: var(--orange);
+      background: rgba(244, 99, 30, 0.03)
+    }
+
+    /* DASHBOARD */
+    .dashboard {
+      min-height: 100vh;
+      padding: 0
+    }
+
+    .dash-header {
+      background: var(--navy);
+      padding: 32px 2rem;
+      color: white
+    }
+
+    .dash-header h2 {
+      font-family: var(--font-head);
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: -0.5px
+    }
+
+    .dash-header p {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.9rem;
+      margin-top: 4px
+    }
+
+    .dash-body {
+      padding: 32px 2rem;
+      max-width: 1200px;
+      margin: 0 auto
+    }
+
+    .dash-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px
+    }
+
+    .stat-card {
+      background: white;
+      border-radius: var(--radius);
+      padding: 22px;
+      border: 1px solid var(--border)
+    }
+
+    .stat-card .sc-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px
+    }
+
+    .stat-card .sc-val {
+      font-family: var(--font-head);
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--navy)
+    }
+
+    .stat-card .sc-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 4px
+    }
+
+    .sc-pending .sc-val {
+      color: var(--pending)
+    }
+
+    .sc-inprogress .sc-val {
+      color: var(--inprogress)
+    }
+
+    .sc-resolved .sc-val {
+      color: var(--resolved)
+    }
+
+    /* FILTER BAR */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    .filter-bar select,
+    .filter-bar input {
+      padding: 9px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.88rem;
+      outline: none;
+      background: white
+    }
+
+    .filter-bar select:focus,
+    .filter-bar input:focus {
+      border-color: var(--orange)
+    }
+
+    .filter-bar label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--navy)
+    }
+
+    /* ISSUE TABLE */
+    .table-wrap {
+      background: white;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden
+    }
+
+    .table-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    .table-header h3 {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    thead th {
+      background: var(--light);
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border)
+    }
+
+    tbody td {
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none
+    }
+
+    tbody tr:hover {
+      background: var(--light)
+    }
+
+    /* STATUS BADGES */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600
+    }
+
+    .status-badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block
+    }
+
+    .s-pending {
+      background: #FEF3C7;
+      color: #92400E
+    }
+
+    .s-pending::before {
+      background: #F59E0B
+    }
+
+    .s-inprogress {
+      background: #DBEAFE;
+      color: #1E40AF
+    }
+
+    .s-inprogress::before {
+      background: #3B82F6
+    }
+
+    .s-resolved {
+      background: #D1FAE5;
+      color: #065F46
+    }
+
+    .s-resolved::before {
+      background: #10B981
+    }
+
+    /* ISSUE CARDS */
+    .issues-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px
+    }
+
+    .issue-card {
+      background: white;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      transition: all 0.2s
+    }
+
+    .issue-card:hover {
+      border-color: var(--orange);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow)
+    }
+
+    .issue-card-img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: var(--light)
+    }
+
+    .issue-card-img-placeholder {
+      width: 100%;
+      height: 160px;
+      background: linear-gradient(135deg, var(--navy3), var(--navy));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px
+    }
+
+    .issue-card-body {
+      padding: 18px
+    }
+
+    .issue-card-body h4 {
+      font-family: var(--font-head);
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 6px
+    }
+
+    .issue-card-body p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin-bottom: 12px
+    }
+
+    .issue-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px
+    }
+
+    .issue-meta-item {
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 3px
+    }
+
+    .issue-card-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 9000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px
+    }
+
+    .modal-overlay.open {
+      display: flex
+    }
+
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      position: relative
+    }
+
+    .modal h3 {
+      font-family: var(--font-head);
+      font-size: 1.4rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+      letter-spacing: -0.3px
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: var(--light);
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    .modal-close:hover {
+      background: var(--border)
+    }
+
+    .modal-map {
+      height: 200px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      overflow: hidden
+    }
+
+    .modal-img {
+      width: 100%;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      max-height: 220px;
+      object-fit: cover
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px
+    }
+
+    .detail-item label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-bottom: 2px
+    }
+
+    .detail-item span {
+      font-size: 0.9rem;
+      font-weight: 500
+    }
+
+    /* ADMIN STATUS UPDATE */
+    .status-select {
+      padding: 7px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      cursor: pointer;
+      outline: none
+    }
+
+    .status-select:focus {
+      border-color: var(--orange)
+    }
+
+    /* TOAST */
+    .toast-container {
+      position: fixed;
+      top: 80px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px
+    }
+
+    .toast {
+      background: var(--navy);
+      color: white;
+      padding: 12px 20px;
+      border-radius: var(--radius-sm);
+      font-size: 0.88rem;
+      box-shadow: var(--shadow);
+      animation: slideIn 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 260px
+    }
+
+    .toast.success {
+      background: #065F46;
+      border-left: 4px solid var(--success)
+    }
+
+    .toast.error {
+      background: #7F1D1D;
+      border-left: 4px solid var(--danger)
+    }
+
+    .toast.info {
+      background: var(--navy3);
+      border-left: 4px solid var(--inprogress)
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1
+      }
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted)
+    }
+
+    .empty-state .em-icon {
+      font-size: 48px;
+      margin-bottom: 16px
+    }
+
+    .empty-state h3 {
+      font-family: var(--font-head);
+      font-size: 1.2rem;
+      color: var(--navy);
+      margin-bottom: 8px
+    }
+
+    .empty-state p {
+      font-size: 0.9rem
+    }
+
+    /* CATEGORY PILL */
+    .cat-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(13, 27, 42, 0.07);
+      color: var(--navy)
+    }
+
+    /* ADMIN SIDEBAR LAYOUT */
+    .admin-layout {
+      display: flex;
+      min-height: 100vh
+    }
+
+    .admin-sidebar {
+      width: 240px;
+      background: var(--navy);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 64px;
+      left: 0;
+      bottom: 0;
+      overflow-y: auto;
+      z-index: 100
+    }
+
+    .admin-sidebar-item {
+      padding: 12px 20px;
+      color: rgba(255, 255, 255, 0.65);
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-left: 3px solid transparent;
+      transition: all 0.2s
+    }
+
+    .admin-sidebar-item:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: white
+    }
+
+    .admin-sidebar-item.active {
+      color: white;
+      background: rgba(244, 99, 30, 0.15);
+      border-left-color: var(--orange)
+    }
+
+    .admin-sidebar-section {
+      padding: 20px 20px 8px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: rgba(255, 255, 255, 0.3);
+      font-weight: 600
+    }
+
+    .admin-main {
+      margin-left: 240px;
+      flex: 1;
+      padding: 32px 2rem;
+      max-width: 100%
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar {
+      width: 6px
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px
+    }
+
+    /* UTILITIES */
+    .flex {
+      display: flex
+    }
+
+    .items-center {
+      align-items: center
+    }
+
+    .justify-between {
+      justify-content: space-between
+    }
+
+    .gap-2 {
+      gap: 8px
+    }
+
+    .gap-3 {
+      gap: 12px
+    }
+
+    .mt-1 {
+      margin-top: 4px
+    }
+
+    .mt-2 {
+      margin-top: 8px
+    }
+
+    .mt-3 {
+      margin-top: 16px
+    }
+
+    .w-full {
+      width: 100%
+    }
+
+    .text-muted {
+      color: var(--muted)
+    }
+
+    .text-sm {
+      font-size: 0.85rem
+    }
+
+    .font-bold {
+      font-weight: 700
+    }
+
+    .text-orange {
+      color: var(--orange)
+    }
+
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 24px 0
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 20px 0
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- TOAST CONTAINER -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- MODAL OVERLAY -->
+  <div class="modal-overlay" id="issueModal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <a class="nav-brand" href="#" onclick="navigate('home')">
+      <div class="nav-logo"><svg viewBox="0 0 24 24">
+          <path
+            d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
+        </svg></div>
+      <span class="nav-title">Civic<span>Alert</span></span>
+    </a>
+    <div class="nav-links" id="navLinks">
+      <button class="nav-btn" onclick="navigate('home')">Home</button>
+      <button class="nav-btn" onclick="navigate('issues')">All Issues</button>
+      <button class="nav-btn" onclick="navigate('login')">Login</button>
+      <button class="nav-btn primary" onclick="navigate('login')">Report Issue</button>
+    </div>
+  </nav>
+
+  <!-- ==================== HOME PAGE ==================== -->
+  <div class="page active" id="page-home">
+    <div class="hero">
+      <div class="hero-tag">🏙️ Smart City Initiative</div>
+      <h1>Report. Track.<br><span>Resolve.</span></h1>
+      <p>Empowering citizens to report civic issues directly to authorities. Potholes, streetlights, water leaks — you
+        report it, we fix it.</p>
+      <div class="hero-btns">
+        <button class="btn btn-primary" onclick="requireLogin('report')">📍 Report an Issue</button>
+        <button class="btn btn-outline" onclick="navigate('issues')">View All Issues →</button>
+      </div>
+    </div>
+
+    <div class="stats-bar" id="homeStats">
+      <div class="stat-item">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-label">Total Reports</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="stat-resolved">0</div>
+        <div class="stat-label">Resolved</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="stat-inprogress">0</div>
+        <div class="stat-label">In Progress</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="stat-pending">0</div>
+        <div class="stat-label">Pending</div>
+      </div>
+    </div>
+
+    <div class="features">
+      <div class="section-title">How It Works</div>
+      <div class="section-sub">Three simple steps to make your city better</div>
+      <div class="grid-3">
+        <div class="feature-card">
+          <div class="feature-icon fi-orange">📍</div>
+          <h3>Report with Location</h3>
+          <p>Submit issues with auto-captured GPS coordinates and photos directly from your device.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-blue">🔔</div>
+          <h3>Track in Real-Time</h3>
+          <p>Monitor the status of your reports — Pending, In Progress, or Resolved — at any time.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon fi-teal">✅</div>
+          <h3>Authorities Act Fast</h3>
+          <p>Municipal staff receive alerts and update issue statuses as they work toward resolution.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="recent-section">
+      <div class="inner">
+        <div class="flex justify-between items-center" style="margin-bottom:24px">
+          <div>
+            <div class="section-title">Recent Reports</div>
+            <div class="section-sub" style="margin-bottom:0">Latest issues submitted by citizens</div>
+          </div>
+          <button class="btn btn-navy btn-sm" onclick="navigate('issues')">View All →</button>
+        </div>
+        <div class="issues-grid" id="homeIssueGrid">
+          <div class="empty-state">
+            <div class="em-icon">📋</div>
+            <h3>No issues yet</h3>
+            <p>Be the first to report a civic problem.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ALL ISSUES PAGE ==================== -->
+  <div class="page" id="page-issues">
+    <div class="dash-header">
+      <div style="max-width:1200px;margin:0 auto">
+        <h2>All Reported Issues</h2>
+        <p>Browse and track civic issues in your area</p>
+      </div>
+    </div>
+    <div class="dash-body">
+      <div class="filter-bar">
+        <label>Filter:</label>
+        <select id="filter-status-pub" onchange="renderPublicIssues()">
+          <option value="">All Status</option>
+          <option value="Pending">Pending</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Resolved">Resolved</option>
+        </select>
+        <select id="filter-cat-pub" onchange="renderPublicIssues()">
+          <option value="">All Categories</option>
+          <option value="Pothole">Pothole</option>
+          <option value="Streetlight">Streetlight</option>
+          <option value="Water Leakage">Water Leakage</option>
+          <option value="Garbage">Garbage</option>
+          <option value="Road Damage">Road Damage</option>
+          <option value="Drainage">Drainage</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="text" id="filter-search-pub" placeholder="🔍 Search issues..." oninput="renderPublicIssues()"
+          style="flex:1;min-width:180px">
+      </div>
+      <div class="issues-grid" id="publicIssueGrid">
+        <div class="empty-state">
+          <div class="em-icon">🔍</div>
+          <h3>No issues found</h3>
+          <p>Try changing your filters.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== LOGIN/REGISTER PAGE ==================== -->
+  <div class="page" id="page-login">
+    <div class="form-page" style="background:linear-gradient(135deg,var(--navy) 0%,var(--navy3) 100%)">
+      <div class="form-card">
+        <h2>Welcome Back</h2>
+        <p>Sign in to your account or create a new one</p>
+        <div class="tab-row">
+          <button class="tab-btn active" id="loginTab" onclick="switchAuthTab('login')">Sign In</button>
+          <button class="tab-btn" id="registerTab" onclick="switchAuthTab('register')">Register</button>
+        </div>
+        <div id="alertBox"></div>
+
+        <!-- LOGIN FORM -->
+        <div id="loginForm">
+          <div class="form-group"><label>Email Address</label><input type="email" id="loginEmail"
+              placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+          <div class="form-group"><label>Password</label><input type="password" id="loginPassword"
+              placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+          <button class="btn btn-primary w-full" onclick="doLogin()" style="justify-content:center;margin-top:8px">Sign
+            In →</button>
+          <div class="form-divider mt-3"><span>Admin access?</span></div>
+          <div class="alert alert-info" style="font-size:0.8rem;text-align:center">Admin: varis8321@gmail.com</div>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="registerForm" style="display:none">
+          <div class="form-group"><label>Full Name</label><input type="text" id="regName" placeholder="Your full name">
+          </div>
+          <div class="form-group"><label>Email Address</label><input type="email" id="regEmail"
+              placeholder="you@example.com"></div>
+          <div class="form-group"><label>Password</label><input type="password" id="regPassword"
+              placeholder="Min. 6 characters"></div>
+          <div class="form-group"><label>Confirm Password</label><input type="password" id="regConfirm"
+              placeholder="Repeat password"></div>
+          <button class="btn btn-primary w-full" onclick="doRegister()"
+            style="justify-content:center;margin-top:8px">Create Account →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== REPORT ISSUE PAGE ==================== -->
+  <div class="page" id="page-report">
+    <div class="report-page">
+      <h2>Report an Issue</h2>
+      <p class="sub">Fill in the details below. Your GPS location will be captured automatically.</p>
+      <div class="report-form">
+        <div id="reportAlert"></div>
+        <div class="form-group">
+          <label>Issue Title *</label>
+          <input type="text" id="issueTitle" placeholder="e.g. Large pothole on MG Road">
+        </div>
+        <div class="form-group">
+          <label>Category *</label>
+          <select id="issueCat">
+            <option value="">Select category</option>
+            <option>Pothole</option>
+            <option>Streetlight</option>
+            <option>Water Leakage</option>
+            <option>Garbage</option>
+            <option>Road Damage</option>
+            <option>Drainage</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Description *</label>
+          <textarea id="issueDesc" placeholder="Describe the issue in detail..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Photo (optional)</label>
+          <div class="img-drop" id="imgDrop" onclick="document.getElementById('issueImg').click()">
+            📸 Click to upload or drag & drop an image
+            <input type="file" id="issueImg" accept="image/*" style="display:none" onchange="previewImage(this)">
+          </div>
+          <img id="imgPreviewEl" class="img-preview" style="display:none">
+        </div>
+        <div class="form-group">
+          <label>Location (GPS) *</label>
+          <div class="gps-row">
+            <input type="text" id="issueLocation" placeholder="Click GPS button to capture location" readonly>
+            <button class="gps-btn" onclick="captureGPS()" title="Capture GPS location">📍</button>
+          </div>
+          <div class="gps-status" id="gpsStatus"></div>
+          <div class="map-preview" id="reportMapPreview" style="display:none"></div>
+          <input type="hidden" id="issueLat">
+          <input type="hidden" id="issueLng">
+        </div>
+        <div class="form-group">
+          <label>Address / Landmark (optional)</label>
+          <input type="text" id="issueAddress" placeholder="e.g. Near City Mall, Sector 12">
+        </div>
+        <div style="display:flex;gap:12px;margin-top:8px">
+          <button class="btn btn-primary" onclick="submitIssue()" style="flex:1;justify-content:center">Submit Report
+            ✓</button>
+          <button class="btn btn-outline" onclick="navigate('home')"
+            style="border-color:var(--border);color:var(--muted)">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== USER DASHBOARD ==================== -->
+  <div class="page" id="page-user-dashboard">
+    <div class="admin-layout">
+      <div class="admin-sidebar">
+        <div class="admin-sidebar-section">Menu</div>
+        <div class="admin-sidebar-item active" onclick="showUserSection('myissues')">📋 My Issues</div>
+        <div class="admin-sidebar-item" onclick="navigate('report')">➕ Report New Issue</div>
+        <div class="admin-sidebar-item" onclick="navigate('issues')">🌐 All Issues</div>
+        <div class="admin-sidebar-section">Account</div>
+        <div class="admin-sidebar-item" onclick="showUserSection('profile')">👤 My Profile</div>
+        <div class="admin-sidebar-item" onclick="doLogout()">🚪 Sign Out</div>
+      </div>
+      <div class="admin-main">
+        <!-- MY ISSUES SECTION -->
+        <div id="userSection-myissues">
+          <div style="margin-bottom:24px">
+            <h2 style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;letter-spacing:-0.5px">My Reports
+            </h2>
+            <p class="text-muted text-sm mt-1">Track all issues you've submitted</p>
+          </div>
+          <div class="dash-grid">
+            <div class="stat-card">
+              <div class="sc-label">Total</div>
+              <div class="sc-val" id="u-total">0</div>
+            </div>
+            <div class="stat-card sc-pending">
+              <div class="sc-label">Pending</div>
+              <div class="sc-val" id="u-pending">0</div>
+            </div>
+            <div class="stat-card sc-inprogress">
+              <div class="sc-label">In Progress</div>
+              <div class="sc-val" id="u-inprogress">0</div>
+            </div>
+            <div class="stat-card sc-resolved">
+              <div class="sc-label">Resolved</div>
+              <div class="sc-val" id="u-resolved">0</div>
+            </div>
+          </div>
+          <div class="issues-grid" id="userIssueGrid">
+            <div class="empty-state">
+              <div class="em-icon">📭</div>
+              <h3>No issues yet</h3>
+              <p>You haven't reported any issues yet.</p><button class="btn btn-primary btn-sm"
+                onclick="navigate('report')" style="margin-top:12px">Report an Issue</button>
+            </div>
+          </div>
+        </div>
+        <!-- PROFILE SECTION -->
+        <div id="userSection-profile" style="display:none">
+          <h2
+            style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;letter-spacing:-0.5px;margin-bottom:24px">
+            My Profile</h2>
+          <div class="report-form" style="max-width:480px">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+              <div
+                style="width:60px;height:60px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:white"
+                id="profileAvatar">?</div>
+              <div>
+                <div style="font-family:var(--font-head);font-size:1.1rem;font-weight:700" id="profileName">-</div>
+                <div class="text-muted text-sm" id="profileEmail">-</div>
+              </div>
+            </div>
+            <div class="form-group"><label>Registered Since</label><input type="text" id="profileDate" readonly></div>
+            <div class="form-group"><label>Total Reports</label><input type="text" id="profileTotal" readonly></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN DASHBOARD ==================== -->
+  <div class="page" id="page-admin">
+    <div class="admin-layout">
+      <div class="admin-sidebar">
+        <div class="admin-sidebar-section">Admin Panel</div>
+        <div class="admin-sidebar-item active" onclick="showAdminSection('overview')">📊 Overview</div>
+        <div class="admin-sidebar-item" onclick="showAdminSection('alissues')">📋 All Issues</div>
+        <div class="admin-sidebar-item" onclick="showAdminSection('users')">👥 Users</div>
+        <div class="admin-sidebar-item" onclick="showAdminSection('map')">🗺️ Map View</div>
+        <div class="admin-sidebar-section">Account</div>
+        <div class="admin-sidebar-item" onclick="doLogout()">🚪 Sign Out</div>
+      </div>
+      <div class="admin-main">
+
+        <!-- OVERVIEW SECTION -->
+        <div id="adminSection-overview">
+          <div style="margin-bottom:24px">
+            <h2 style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;letter-spacing:-0.5px">Admin
+              Dashboard</h2>
+            <p class="text-muted text-sm mt-1">Welcome back, Admin — here's what's happening</p>
+          </div>
+          <div class="dash-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">
+            <div class="stat-card">
+              <div class="sc-label">Total Issues</div>
+              <div class="sc-val" id="a-total">0</div>
+            </div>
+            <div class="stat-card sc-pending">
+              <div class="sc-label">Pending</div>
+              <div class="sc-val" id="a-pending">0</div>
+            </div>
+            <div class="stat-card sc-inprogress">
+              <div class="sc-label">In Progress</div>
+              <div class="sc-val" id="a-inprogress">0</div>
+            </div>
+            <div class="stat-card sc-resolved">
+              <div class="sc-label">Resolved</div>
+              <div class="sc-val" id="a-resolved">0</div>
+            </div>
+            <div class="stat-card">
+              <div class="sc-label">Total Users</div>
+              <div class="sc-val" id="a-users">0</div>
+            </div>
+          </div>
+          <div class="section-divider"></div>
+          <div class="table-wrap">
+            <div class="table-header">
+              <h3>Recent Issues</h3><button class="btn btn-navy btn-sm" onclick="showAdminSection('alissues')">View
+                All</button>
+            </div>
+            <div id="adminRecentTable">Loading...</div>
+          </div>
+        </div>
+
+        <!-- ALL ISSUES SECTION -->
+        <div id="adminSection-alissues" style="display:none">
+          <div style="margin-bottom:24px">
+            <h2 style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;letter-spacing:-0.5px">All Issues
+            </h2>
+            <p class="text-muted text-sm mt-1">Manage and update all civic reports</p>
+          </div>
+          <div class="filter-bar">
+            <select id="af-status" onchange="renderAdminTable()">
+              <option value="">All Status</option>
+              <option>Pending</option>
+              <option>In Progress</option>
+              <option>Resolved</option>
+            </select>
+            <select id="af-cat" onchange="renderAdminTable()">
+              <option value="">All Categories</option>
+              <option>Pothole</option>
+              <option>Streetlight</option>
+              <option>Water Leakage</option>
+              <option>Garbage</option>
+              <option>Road Damage</option>
+              <option>Drainage</option>
+              <option>Other</option>
+            </select>
+            <input type="date" id="af-date" onchange="renderAdminTable()">
+            <input type="text" id="af-search" placeholder="🔍 Search..." oninput="renderAdminTable()" style="flex:1">
+            <button class="btn btn-sm" style="border:1.5px solid var(--border);background:white"
+              onclick="clearAdminFilters()">Clear</button>
+          </div>
+          <div class="table-wrap">
+            <div id="adminFullTable">Loading...</div>
+          </div>
+        </div>
+
+        <!-- USERS SECTION -->
+        <div id="adminSection-users" style="display:none">
+          <div style="margin-bottom:24px">
+            <h2 style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;letter-spacing:-0.5px">Registered
+              Users</h2>
+            <p class="text-muted text-sm mt-1">Manage citizen accounts</p>
+          </div>
+          <div class="table-wrap">
+            <div id="adminUsersTable">Loading...</div>
+          </div>
+        </div>
+
+        <!-- MAP SECTION -->
+        <div id="adminSection-map" style="display:none">
+          <div style="margin-bottom:24px">
+            <h2 style="font-family:var(--font-head);font-size:1.8rem;font-weight:800;letter-spacing:-0.5px">Issue Map
+            </h2>
+            <p class="text-muted text-sm mt-1">Geographic overview of all reported issues</p>
+          </div>
+          <div id="adminMapContainer"
+            style="height:520px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)"></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.1/firebase-firestore-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDp6ygegdEDxG8WgbuVUBFBaRdnDJGI2t0",
+      authDomain: "civic-alert-9f650.firebaseapp.com",
+      projectId: "civic-alert-9f650",
+      storageBucket: "civic-alert-9f650.firebasestorage.app",
+      messagingSenderId: "155492758151",
+      appId: "1:155492758151:web:a774e48ad9031f938fbe22"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ===== STORAGE HELPERS =====
+    const ADMIN = { email: 'varis8321@gmail.com', password: 'Varis@1234', name: 'Admin Varis', role: 'admin' };
+
+    async function getUsers() { try { const snap = await db.collection('users').get(); return snap.docs.map(d => d.data()); } catch (e) { console.error(e); return [] } }
+    async function getIssues() { try { const snap = await db.collection('issues').get(); return snap.docs.map(d => d.data()).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt)); } catch (e) { console.error(e); return [] } }
+    async function saveIssuesBatch(u) { try { const batch = db.batch(); u.forEach(iss => batch.set(db.collection('issues').doc(iss.id), iss)); await batch.commit(); } catch (e) { console.error(e); } }
+
+    let currentUser = null;
+    let reportMap = null, reportMapMarker = null, adminMapInst = null;
+
+    // ===== TOAST =====
+    function toast(msg, type = 'info') {
+      const t = document.getElementById('toastContainer');
+      const d = document.createElement('div');
+      d.className = `toast ${type}`;
+      const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+      d.innerHTML = `<span>${icons[type] || 'ℹ️'}</span> ${msg}`;
+      t.appendChild(d);
+      setTimeout(() => { d.style.animation = 'slideIn 0.3s ease reverse'; setTimeout(() => d.remove(), 300) }, 3500);
+    }
+
+    // ===== NAV =====
+    function updateNav() {
+      const nl = document.getElementById('navLinks');
+      if (!currentUser) {
+        nl.innerHTML = `<button class="nav-btn" onclick="navigate('home')">Home</button><button class="nav-btn" onclick="navigate('issues')">All Issues</button><button class="nav-btn" onclick="navigate('login')">Login</button><button class="nav-btn primary" onclick="navigate('login')">Report Issue</button>`;
+      } else if (currentUser.role === 'admin') {
+        nl.innerHTML = `<button class="nav-btn" onclick="navigate('home')">Home</button><button class="nav-btn" onclick="navigate('issues')">All Issues</button><div class="nav-user"><div class="nav-avatar">A</div><span class="nav-username">Admin<span class="badge-admin">ADMIN</span></span></div><button class="nav-btn" onclick="navigate('admin')">Dashboard</button><button class="nav-btn" onclick="doLogout()">Logout</button>`;
+      } else {
+        const ini = currentUser.name[0].toUpperCase();
+        nl.innerHTML = `<button class="nav-btn" onclick="navigate('home')">Home</button><button class="nav-btn" onclick="navigate('issues')">All Issues</button><button class="nav-btn primary" onclick="navigate('report')">+ Report</button><div class="nav-user"><div class="nav-avatar">${ini}</div><span class="nav-username">${currentUser.name.split(' ')[0]}</span></div><button class="nav-btn" onclick="navigate('user-dashboard')">My Issues</button><button class="nav-btn" onclick="doLogout()">Logout</button>`;
+      }
+    }
+
+    function navigate(page) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      const el = document.getElementById('page-' + page);
+      if (!el) { console.warn('No page:', page); return; }
+      el.classList.add('active');
+      window.scrollTo(0, 0);
+      if (page === 'home') loadHome();
+      if (page === 'issues') renderPublicIssues();
+      if (page === 'report') initReportPage();
+      if (page === 'user-dashboard') loadUserDash();
+      if (page === 'admin') loadAdminDash();
+    }
+
+    function requireLogin(page) {
+      if (!currentUser) { navigate('login'); return; }
+      navigate(page);
+    }
+
+    // ===== AUTH =====
+    function switchAuthTab(tab) {
+      document.getElementById('loginForm').style.display = tab === 'login' ? 'block' : 'none';
+      document.getElementById('registerForm').style.display = tab === 'register' ? 'block' : 'none';
+      document.getElementById('loginTab').classList.toggle('active', tab === 'login');
+      document.getElementById('registerTab').classList.toggle('active', tab === 'register');
+      document.getElementById('alertBox').innerHTML = '';
+    }
+
+    async function doLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPassword').value;
+      const ab = document.getElementById('alertBox');
+      if (!email || !pass) { ab.innerHTML = '<div class="alert alert-error">Please fill all fields.</div>'; return; }
+      if (email === ADMIN.email && pass === ADMIN.password) {
+        currentUser = { ...ADMIN }; updateNav(); toast('Welcome, Admin!', 'success'); navigate('admin'); return;
+      }
+      try {
+        const snap = await db.collection('users').where('email', '==', email).where('password', '==', pass).get();
+        if (snap.empty) { ab.innerHTML = '<div class="alert alert-error">Invalid email or password.</div>'; return; }
+        currentUser = snap.docs[0].data(); updateNav(); toast(`Welcome back, ${currentUser.name.split(' ')[0]}!`, 'success'); navigate('user-dashboard');
+      } catch (err) {
+        console.error(err);
+        ab.innerHTML = '<div class="alert alert-error">Login failed: ' + err.message + '</div>';
+      }
+    }
+
+    async function doRegister() {
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPassword').value;
+      const conf = document.getElementById('regConfirm').value;
+      const ab = document.getElementById('alertBox');
+      if (!name || !email || !pass || !conf) { ab.innerHTML = '<div class="alert alert-error">Please fill all fields.</div>'; return; }
+      if (pass !== conf) { ab.innerHTML = '<div class="alert alert-error">Passwords do not match.</div>'; return; }
+      if (pass.length < 6) { ab.innerHTML = '<div class="alert alert-error">Password must be at least 6 characters.</div>'; return; }
+      if (email === ADMIN.email) { ab.innerHTML = '<div class="alert alert-error">That email is reserved.</div>'; return; }
+      try {
+        const snap = await db.collection('users').where('email', '==', email).get();
+        if (!snap.empty) { ab.innerHTML = '<div class="alert alert-error">Email already registered.</div>'; return; }
+        const newUser = { id: 'u' + Date.now(), name, email, password: pass, role: 'user', createdAt: new Date().toISOString() };
+        await db.collection('users').doc(newUser.id).set(newUser);
+        currentUser = newUser; updateNav(); toast('Account created! Welcome 🎉', 'success'); navigate('user-dashboard');
+      } catch (err) {
+        console.error(err);
+        ab.innerHTML = '<div class="alert alert-error">Registration failed: ' + err.message + '</div>';
+      }
+    }
+
+    function doLogout() { currentUser = null; updateNav(); navigate('home'); toast('Logged out successfully', 'info'); }
+
+    // ===== HOME =====
+    async function loadHome() {
+      const issues = await getIssues();
+      document.getElementById('stat-total').textContent = issues.length;
+      document.getElementById('stat-resolved').textContent = issues.filter(x => x.status === 'Resolved').length;
+      document.getElementById('stat-inprogress').textContent = issues.filter(x => x.status === 'In Progress').length;
+      document.getElementById('stat-pending').textContent = issues.filter(x => x.status === 'Pending').length;
+      const recent = issues.slice(-6).reverse();
+      renderIssueCards(recent, 'homeIssueGrid', false);
+    }
+
+    // ===== ISSUE CARDS =====
+    const catEmoji = { Pothole: '🕳️', Streetlight: '💡', 'Water Leakage': '💧', Garbage: '🗑️', 'Road Damage': '🛣️', Drainage: '🌊', Other: '📌' };
+
+    function renderIssueCards(issues, containerId, showActions) {
+      const el = document.getElementById(containerId);
+      if (!issues.length) { el.innerHTML = '<div class="empty-state"><div class="em-icon">📭</div><h3>No issues found</h3><p>Try adjusting filters or check back later.</p></div>'; return; }
+      el.innerHTML = issues.map(iss => `
+    <div class="issue-card" onclick="openIssueModal('${iss.id}')">
+      ${iss.imageData ? `<img src="${iss.imageData}" class="issue-card-img" onerror="this.style.display='none'">` : `<div class="issue-card-img-placeholder">${catEmoji[iss.category] || '📌'}</div>`}
+      <div class="issue-card-body">
+        <div class="issue-meta">
+          <span class="status-badge ${statusClass(iss.status)}">${iss.status}</span>
+          <span class="cat-pill">${iss.category}</span>
+        </div>
+        <h4>${escHtml(iss.title)}</h4>
+        <p>${escHtml(iss.description).substring(0, 90)}${iss.description.length > 90 ? '…' : ''}</p>
+        <div class="issue-meta">
+          <span class="issue-meta-item">📍 ${escHtml(iss.address || coordStr(iss.lat, iss.lng))}</span>
+          <span class="issue-meta-item">🕐 ${timeAgo(iss.createdAt)}</span>
+        </div>
+        <div class="issue-card-actions">
+          <span style="font-size:0.75rem;color:var(--muted)">ID: #${iss.id.slice(-6).toUpperCase()}</span>
+          <button class="btn btn-sm" style="border:1px solid var(--border);background:white" onclick="event.stopPropagation();openIssueModal('${iss.id}')">View Details</button>
+        </div>
+      </div>
+    </div>`).join('');
+    }
+
+    // ===== PUBLIC ISSUES =====
+    async function renderPublicIssues() {
+      let issues = await getIssues();
+      const s = document.getElementById('filter-status-pub').value;
+      const c = document.getElementById('filter-cat-pub').value;
+      const q = (document.getElementById('filter-search-pub').value || '').toLowerCase();
+      if (s) issues = issues.filter(x => x.status === s);
+      if (c) issues = issues.filter(x => x.category === c);
+      if (q) issues = issues.filter(x => x.title.toLowerCase().includes(q) || x.description.toLowerCase().includes(q));
+      renderIssueCards(issues.slice().reverse(), 'publicIssueGrid', false);
+    }
+
+    // ===== REPORT ISSUE =====
+    let imgBase64 = '';
+    let reportMapInst = null;
+
+    function initReportPage() {
+      if (!currentUser) { navigate('login'); return; }
+      document.getElementById('issueTitle').value = '';
+      document.getElementById('issueCat').value = '';
+      document.getElementById('issueDesc').value = '';
+      document.getElementById('issueLocation').value = '';
+      document.getElementById('issueAddress').value = '';
+      document.getElementById('issueLat').value = '';
+      document.getElementById('issueLng').value = '';
+      document.getElementById('gpsStatus').innerHTML = '';
+      document.getElementById('imgPreviewEl').style.display = 'none';
+      document.getElementById('reportMapPreview').style.display = 'none';
+      document.getElementById('reportAlert').innerHTML = '';
+      imgBase64 = '';
+      if (reportMapInst) { reportMapInst.remove(); reportMapInst = null; }
+    }
+
+    function previewImage(input) {
+      const file = input.files[0]; if (!file) return;
+      if (file.size > 3 * 1024 * 1024) { toast('Image too large (max 3MB)', 'error'); return; }
+      const r = new FileReader();
+      r.onload = e => { imgBase64 = e.target.result; const pi = document.getElementById('imgPreviewEl'); pi.src = imgBase64; pi.style.display = 'block'; };
+      r.readAsDataURL(file);
+    }
+
+    function captureGPS() {
+      const st = document.getElementById('gpsStatus');
+      st.innerHTML = '<span class="gps-status">📡 Getting location...</span>';
+      if (!navigator.geolocation) { st.innerHTML = '<span class="gps-fail">❌ Geolocation not supported by your browser.</span>'; return; }
+      navigator.geolocation.getCurrentPosition(pos => {
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        document.getElementById('issueLat').value = lat;
+        document.getElementById('issueLng').value = lng;
+        document.getElementById('issueLocation').value = `${lat}, ${lng}`;
+        st.innerHTML = `<span class="gps-ok">✅ Location captured: ${lat}, ${lng}</span>`;
+        const mapDiv = document.getElementById('reportMapPreview');
+        mapDiv.style.display = 'block';
+        setTimeout(() => {
+          if (reportMapInst) reportMapInst.remove();
+          reportMapInst = L.map('reportMapPreview').setView([lat, lng], 15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(reportMapInst);
+          L.marker([lat, lng]).addTo(reportMapInst).bindPopup('📍 Your location').openPopup();
+        }, 100);
+      }, err => {
+        let msg = 'Location access denied.';
+        if (err.code === 1) msg = 'Permission denied. Please allow location access.';
+        else if (err.code === 2) msg = 'Location unavailable.';
+        else if (err.code === 3) msg = 'Timeout. Try again.';
+        st.innerHTML = `<span class="gps-fail">❌ ${msg}</span>`;
+      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }
+
+    async function submitIssue() {
+      const title = document.getElementById('issueTitle').value.trim();
+      const cat = document.getElementById('issueCat').value;
+      const desc = document.getElementById('issueDesc').value.trim();
+      const lat = document.getElementById('issueLat').value;
+      const lng = document.getElementById('issueLng').value;
+      const addr = document.getElementById('issueAddress').value.trim();
+      const ra = document.getElementById('reportAlert');
+      if (!title || !cat || !desc) { ra.innerHTML = '<div class="alert alert-error">Please fill Title, Category and Description.</div>'; return; }
+      if (!lat || !lng) { ra.innerHTML = '<div class="alert alert-error">Please capture your GPS location first.</div>'; return; }
+      ra.innerHTML = '<div class="alert alert-info">Submitting...</div>';
+      const newIssue = {
+        id: 'i' + Date.now(), title, category: cat, description: desc,
+        imageData: imgBase64 || '', lat: parseFloat(lat), lng: parseFloat(lng),
+        address: addr, status: 'Pending', createdBy: currentUser.id,
+        createdByName: currentUser.name, createdAt: new Date().toISOString()
+      };
+      try {
+        await db.collection('issues').doc(newIssue.id).set(newIssue);
+        toast('Issue reported successfully! 🎉', 'success');
+        navigate('user-dashboard');
+      } catch (err) {
+        console.error(err);
+        ra.innerHTML = '<div class="alert alert-error">Submission failed: ' + err.message + '</div>';
+      }
+    }
+
+    // ===== USER DASHBOARD =====
+    async function loadUserDash() {
+      if (!currentUser) return;
+      const issues = await getIssues();
+      const mine = issues.filter(x => x.createdBy === currentUser.id);
+      document.getElementById('u-total').textContent = mine.length;
+      document.getElementById('u-pending').textContent = mine.filter(x => x.status === 'Pending').length;
+      document.getElementById('u-inprogress').textContent = mine.filter(x => x.status === 'In Progress').length;
+      document.getElementById('u-resolved').textContent = mine.filter(x => x.status === 'Resolved').length;
+      renderIssueCards(mine.slice().reverse(), 'userIssueGrid', false);
+      // profile
+      document.getElementById('profileName').textContent = currentUser.name;
+      document.getElementById('profileEmail').textContent = currentUser.email;
+      document.getElementById('profileAvatar').textContent = currentUser.name[0].toUpperCase();
+      document.getElementById('profileDate').value = currentUser.createdAt ? new Date(currentUser.createdAt).toLocaleDateString() : 'N/A';
+      document.getElementById('profileTotal').value = mine.length + ' issues';
+    }
+
+    function showUserSection(s) {
+      document.querySelectorAll('#page-user-dashboard .admin-sidebar-item').forEach(el => el.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.querySelectorAll('[id^="userSection-"]').forEach(el => el.style.display = 'none');
+      document.getElementById('userSection-' + s).style.display = 'block';
+    }
+
+    // ===== ADMIN DASHBOARD =====
+    async function loadAdminDash() {
+      if (!currentUser || currentUser.role !== 'admin') { navigate('home'); return; }
+      const issues = await getIssues();
+      const users = await getUsers();
+      document.getElementById('a-total').textContent = issues.length;
+      document.getElementById('a-pending').textContent = issues.filter(x => x.status === 'Pending').length;
+      document.getElementById('a-inprogress').textContent = issues.filter(x => x.status === 'In Progress').length;
+      document.getElementById('a-resolved').textContent = issues.filter(x => x.status === 'Resolved').length;
+      document.getElementById('a-users').textContent = users.length;
+      renderAdminRecentTable(issues.slice().reverse().slice(0, 8));
+      renderAdminTable();
+      renderAdminUsers();
+    }
+
+    function showAdminSection(s) {
+      document.querySelectorAll('#page-admin .admin-sidebar-item').forEach(el => el.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.querySelectorAll('[id^="adminSection-"]').forEach(el => el.style.display = 'none');
+      document.getElementById('adminSection-' + s).style.display = 'block';
+      if (s === 'map') initAdminMap();
+    }
+
+    function renderAdminRecentTable(issues) {
+      if (!issues.length) { document.getElementById('adminRecentTable').innerHTML = '<div class="empty-state" style="padding:40px"><div class="em-icon">📭</div><h3>No issues yet</h3></div>'; return; }
+      document.getElementById('adminRecentTable').innerHTML = buildIssueTable(issues, true);
+    }
+
+    async function renderAdminTable() {
+      let issues = await getIssues();
+      const s = document.getElementById('af-status').value;
+      const c = document.getElementById('af-cat').value;
+      const d = document.getElementById('af-date').value;
+      const q = (document.getElementById('af-search').value || '').toLowerCase();
+      if (s) issues = issues.filter(x => x.status === s);
+      if (c) issues = issues.filter(x => x.category === c);
+      if (d) issues = issues.filter(x => x.createdAt && x.createdAt.startsWith(d));
+      if (q) issues = issues.filter(x => x.title.toLowerCase().includes(q) || x.description.toLowerCase().includes(q));
+      document.getElementById('adminFullTable').innerHTML = issues.length ? buildIssueTable(issues.slice().reverse(), true) : '<div class="empty-state" style="padding:40px"><div class="em-icon">🔍</div><h3>No issues found</h3></div>';
+    }
+
+    function clearAdminFilters() {
+      document.getElementById('af-status').value = '';
+      document.getElementById('af-cat').value = '';
+      document.getElementById('af-date').value = '';
+      document.getElementById('af-search').value = '';
+      renderAdminTable();
+    }
+
+    function buildIssueTable(issues, isAdmin) {
+      return `<table><thead><tr><th>ID</th><th>Title</th><th>Category</th><th>Status</th><th>Location</th><th>Reporter</th><th>Date</th>${isAdmin ? '<th>Actions</th>' : ''}</tr></thead><tbody>
+  ${issues.map(iss => `<tr>
+    <td style="font-family:monospace;font-size:0.78rem;color:var(--muted)">#${iss.id.slice(-6).toUpperCase()}</td>
+    <td><a href="#" onclick="event.preventDefault();openIssueModal('${iss.id}')" style="color:var(--navy);font-weight:500;text-decoration:none">${escHtml(iss.title)}</a></td>
+    <td><span class="cat-pill">${escHtml(iss.category)}</span></td>
+    <td><span class="status-badge ${statusClass(iss.status)}">${iss.status}</span></td>
+    <td style="font-size:0.78rem;color:var(--muted)">${iss.address || coordStr(iss.lat, iss.lng)}</td>
+    <td style="font-size:0.82rem">${escHtml(iss.createdByName || 'Unknown')}</td>
+    <td style="font-size:0.78rem;color:var(--muted)">${iss.createdAt ? new Date(iss.createdAt).toLocaleDateString() : '-'}</td>
+    ${isAdmin ? `<td><div style="display:flex;gap:6px;align-items:center"><select class="status-select" onchange="updateStatus('${iss.id}',this.value)"><option ${iss.status === 'Pending' ? 'selected' : ''}>Pending</option><option ${iss.status === 'In Progress' ? 'selected' : ''}>In Progress</option><option ${iss.status === 'Resolved' ? 'selected' : ''}>Resolved</option></select><button class="btn btn-danger btn-sm" onclick="deleteIssue('${iss.id}')">🗑</button></div></td>` : ''}
+  </tr>`).join('')}
+  </tbody></table>`;
+    }
+
+    async function renderAdminUsers() {
+      const users = await getUsers();
+      const issues = await getIssues();
+      if (!users.length) { document.getElementById('adminUsersTable').innerHTML = '<div class="empty-state" style="padding:40px"><div class="em-icon">👥</div><h3>No registered users yet</h3></div>'; return; }
+      document.getElementById('adminUsersTable').innerHTML = `<table><thead><tr><th>Name</th><th>Email</th><th>Registered</th><th>Issues Reported</th></tr></thead><tbody>
+  ${users.map(u => `<tr>
+    <td><div style="display:flex;align-items:center;gap:10px"><div style="width:32px;height:32px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:white">${u.name[0].toUpperCase()}</div>${escHtml(u.name)}</div></td>
+    <td>${escHtml(u.email)}</td>
+    <td>${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '-'}</td>
+    <td>${issues.filter(x => x.createdBy === u.id).length}</td>
+  </tr>`).join('')}
+  </tbody></table>`;
+    }
+
+    async function updateStatus(id, status) {
+      await db.collection('issues').doc(id).update({ status: status, updatedAt: new Date().toISOString() });
+      toast(`Status updated to "${status}"✓`, 'success');
+      renderAdminTable();
+      loadAdminDash();
+    }
+
+    async function deleteIssue(id) {
+      if (!confirm('Delete this issue?')) return;
+      await db.collection('issues').doc(id).delete();
+      toast('Issue deleted', 'info');
+      loadAdminDash();
+      renderAdminTable();
+    }
+
+    // ===== ADMIN MAP =====
+    async function initAdminMap() {
+      await new Promise(r => setTimeout(r, 100));
+      const issues = await getIssues();
+      const withLoc = issues.filter(x => x.lat && x.lng);
+      if (adminMapInst) { adminMapInst.remove(); adminMapInst = null; }
+      const center = withLoc.length ? [withLoc[0].lat, withLoc[0].lng] : [28.6139, 77.2090];
+      adminMapInst = L.map('adminMapContainer').setView(center, 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(adminMapInst);
+      withLoc.forEach(iss => {
+        const color = iss.status === 'Resolved' ? '#10B981' : iss.status === 'In Progress' ? '#3B82F6' : '#F59E0B';
+        const icon = L.divIcon({ html: `<div style="width:16px;height:16px;border-radius:50%;background:${color};border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`, iconSize: [16, 16], className: '' });
+        L.marker([iss.lat, iss.lng], { icon }).addTo(adminMapInst)
+          .bindPopup(`<b>${iss.title}</b><br><span style="color:${color}">${iss.status}</span><br>${iss.category}`);
+      });
+      if (!withLoc.length) adminMapInst.setView([28.6139, 77.2090], 10);
+    }
+
+    // ===== ISSUE MODAL =====
+    async function openIssueModal(id) {
+      const issues = await getIssues();
+      const iss = issues.find(x => x.id === id);
+      if (!iss) return;
+      let adminActions = '';
+      if (currentUser && currentUser.role === 'admin') {
+        adminActions = `<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)"><label style="font-size:0.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:8px">UPDATE STATUS</label><div style="display:flex;gap:8px"><select class="status-select" id="modalStatusSel" style="flex:1"><option ${iss.status === 'Pending' ? 'selected' : ''}>Pending</option><option ${iss.status === 'In Progress' ? 'selected' : ''}>In Progress</option><option ${iss.status === 'Resolved' ? 'selected' : ''}>Resolved</option></select><button class="btn btn-primary btn-sm" onclick="updateStatusFromModal('${iss.id}')">Update</button></div></div>`;
+      }
+      document.getElementById('modalContent').innerHTML = `
+    <h3>${escHtml(iss.title)}</h3>
+    ${iss.imageData ? `<img src="${iss.imageData}" class="modal-img" onerror="this.style.display='none'">` : ``}
+    <div id="modalMapDiv" style="height:180px;border-radius:var(--radius-sm);margin-bottom:16px;overflow:hidden;background:var(--light);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.85rem">Loading map...</div>
+    <div class="detail-grid">
+      <div class="detail-item"><label>Status</label><span class="status-badge ${statusClass(iss.status)}">${iss.status}</span></div>
+      <div class="detail-item"><label>Category</label><span class="cat-pill">${iss.category}</span></div>
+      <div class="detail-item"><label>Reporter</label><span>${escHtml(iss.createdByName || 'Unknown')}</span></div>
+      <div class="detail-item"><label>Reported</label><span>${iss.createdAt ? new Date(iss.createdAt).toLocaleString() : '-'}</span></div>
+      <div class="detail-item"><label>Latitude</label><span>${iss.lat || '-'}</span></div>
+      <div class="detail-item"><label>Longitude</label><span>${iss.lng || '-'}</span></div>
+    </div>
+    ${iss.address ? `<div style="margin-bottom:12px"><label style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);display:block;margin-bottom:4px">Address</label><span style="font-size:0.9rem">${escHtml(iss.address)}</span></div>` : ''}
+    <div><label style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);display:block;margin-bottom:4px">Description</label><p style="font-size:0.9rem;line-height:1.7;color:var(--text)">${escHtml(iss.description)}</p></div>
+    ${adminActions}
+  `;
+      document.getElementById('issueModal').classList.add('open');
+      setTimeout(() => {
+        if (iss.lat && iss.lng) {
+          const mm = L.map('modalMapDiv').setView([iss.lat, iss.lng], 15);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mm);
+          L.marker([iss.lat, iss.lng]).addTo(mm).bindPopup(iss.title).openPopup();
+        } else {
+          document.getElementById('modalMapDiv').innerHTML = '<span>📍 No location data</span>';
+        }
+      }, 150);
+    }
+
+    async function updateStatusFromModal(id) {
+      const s = document.getElementById('modalStatusSel').value;
+      await updateStatus(id, s);
+      closeModal();
+    }
+
+    function closeModal() { document.getElementById('issueModal').classList.remove('open'); }
+    document.getElementById('issueModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+    // ===== HELPERS =====
+    function statusClass(s) { if (s === 'Resolved') return 's-resolved'; if (s === 'In Progress') return 's-inprogress'; return 's-pending'; }
+    function escHtml(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+    function coordStr(lat, lng) { if (lat && lng) return `${parseFloat(lat).toFixed(4)}, ${parseFloat(lng).toFixed(4)}`; return 'N/A'; }
+    function timeAgo(iso) {
+      if (!iso) return '-';
+      const d = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+      if (d < 60) return 'just now';
+      if (d < 3600) return Math.floor(d / 60) + 'm ago';
+      if (d < 86400) return Math.floor(d / 3600) + 'h ago';
+      return Math.floor(d / 86400) + 'd ago';
+    }
+
+    // ===== SEED DATA (demo) =====
+    async function seedIfEmpty() {
+      const issues = await getIssues();
+      if (issues.length) return;
+      const demo = [
+        { id: 'i0001', title: 'Large Pothole on MG Road', category: 'Pothole', description: 'There is a large pothole near the City Mall junction. Vehicles are getting damaged. Immediate repair needed.', lat: 28.6315, lng: 77.2167, address: 'Near City Mall, MG Road', status: 'Pending', createdByName: 'Rahul Sharma', createdBy: 'u0001', createdAt: new Date(Date.now() - 86400000 * 2).toISOString(), imageData: '' },
+        { id: 'i0002', title: 'Broken Streetlight - Sector 15', category: 'Streetlight', description: 'Three streetlights are not functioning since 2 weeks. Area is very dark at night, safety risk for pedestrians.', lat: 28.6422, lng: 77.1089, address: 'Sector 15, Block C', status: 'In Progress', createdByName: 'Priya Patel', createdBy: 'u0002', createdAt: new Date(Date.now() - 86400000 * 5).toISOString(), imageData: '' },
+        { id: 'i0003', title: 'Water Pipe Leakage', category: 'Water Leakage', description: 'Underground water pipe leaking near the park. Flooding road and causing wastage of water.', lat: 28.6100, lng: 77.2300, address: 'Central Park, Sector 8', status: 'Resolved', createdByName: 'Amit Singh', createdBy: 'u0003', createdAt: new Date(Date.now() - 86400000 * 10).toISOString(), imageData: '' },
+        { id: 'i0004', title: 'Garbage Not Collected - 3 Days', category: 'Garbage', description: 'Garbage has not been collected for 3 days. Causing foul smell and hygiene issues in the locality.', lat: 28.6250, lng: 77.1950, address: 'Green Park Colony, Lane 5', status: 'Pending', createdByName: 'Sunita Rao', createdBy: 'u0004', createdAt: new Date(Date.now() - 86400000).toISOString(), imageData: '' },
+        { id: 'i0005', title: 'Road Damage After Rains', category: 'Road Damage', description: 'Heavy rains have damaged the road surface. Multiple potholes and cracks visible. Dangerous for two-wheelers.', lat: 28.6200, lng: 77.2050, address: 'Ring Road, Near Metro Station', status: 'In Progress', createdByName: 'Vikram Kumar', createdBy: 'u0005', createdAt: new Date(Date.now() - 86400000 * 7).toISOString(), imageData: '' },
+      ];
+      await saveIssuesBatch(demo);
+    }
+
+    // ===== INIT =====
+    (async () => {
+      await seedIfEmpty();
+      updateNav();
+      loadHome();
+    })();
+  </script>
+</body>
+
+</html>
